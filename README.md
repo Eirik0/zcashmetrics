@@ -5,10 +5,10 @@ ZcashMetrics will connect to a running instance of the Zcash daemon and execute 
 
 Installation
 ------------
+
 **1. Install Zcash**
 
 See [Zcash 1.0 User Guide](https://github.com/zcash/zcash/wiki/1.0-User-Guide)
-
 
 **2. Install PostgreSQL**
 
@@ -52,6 +52,7 @@ and change "peer" to "md5"
 
 Usage
 -----
+
 Start the Zcash daemon and execute the following command:
 
 	$ python zcashmetrics.py
