@@ -1,7 +1,25 @@
 #!/usr/bin/env python2
 
-import dbwrapper
-from dbwrapper import ColumnDef, TableDef
+class ColumnDef:
+    def __init__(self, columnName, columnType, isPrimaryKey = False):
+        self.columnName = columnName
+        self.columnType = columnType
+        self.isPrimaryKey = isPrimaryKey
+
+    def getCreateTableString(self):
+        return "{} {}".format(self.columnName, self.columnType)
+
+class TableDef:
+    def __init__(self, tableName, columnList):
+        self.tableName = tableName
+        self.columnList = columnList
+
+    def getCreateTableString(self):
+        columnString = ", ".join(column.getCreateTableString() for column in self.columnList)
+        primaryKeyString = ", ".join(column.columnName for column in self.columnList if column.isPrimaryKey)
+        return "{} ({}, PRIMARY KEY({}))".format(self.tableName, columnString, primaryKeyString)
+
+ZCASH_DB_NAME = 'ZCashMetrics'
 
 TABLE_DEFS = (
     [
@@ -9,7 +27,7 @@ TABLE_DEFS = (
             [
                 ColumnDef('Height', 'INTEGER', True),
                 ColumnDef('Time', 'BIGINT'),
-                ColumnDef('NumTxs', 'INTEGER')
+                ColumnDef('NumTx', 'INTEGER')
             ]),
         TableDef('Tx',
             [
@@ -36,16 +54,23 @@ TABLE_DEFS = (
             [
                 ColumnDef('TxId', 'BYTEA', True),
                 ColumnDef('N', 'INTEGER', True),
-                ColumnDef('VPubOld', 'BIGINT'),
-                ColumnDef('VPubNew', 'BIGINT')
+                ColumnDef('VPubOld', 'BIGINT'), # Out
+                ColumnDef('VPubNew', 'BIGINT')  # In
             ])
     ])
 
-def ensureTablesExist():
-    connection = dbwrapper.openConnection()
-    try:
-        for tableDef in TABLE_DEFS:
-            dbwrapper.ensureTableExists(connection, tableDef)
-    finally:
-        if connection:
-            connection.close()
+BLOCK_INSERT_QUERY = ("INSERT INTO Block (Height, Time, NumTx)"
+        "VALUES (%s, %s, %s)"
+        "ON CONFLICT (Height) DO NOTHING")
+TX_INSERT_QUERY = ("INSERT INTO Tx (TxId, Block, CoinBase, NumVIn, NumVOut, NumVJoinSplit) "
+        "VALUES (decode(%s, 'hex'), %s, %s, %s, %s, %s) "
+        "ON CONFLICT (TxId) DO NOTHING")
+VIN_INSERT_QUERY = ("INSERT INTO VIn (TxId, PrevN, PrevTxId)"
+        "VALUES (decode(%s, 'hex'), %s, %s) "
+        "ON CONFLICT (TxId, PrevN) DO NOTHING")
+VOUT_INSERT_QUERY = ("INSERT INTO VOut (TxId, N, Value)"
+        "VALUES (decode(%s, 'hex'), %s, %s)"
+        "ON CONFLICT (TxId, N) DO NOTHING")
+VJOINSPLIT_INSERT_QUERY = ("INSERT INTO VJoinSplit (TxId, N, VPubOld, VPubNew)"
+        "VALUES (decode(%s, 'hex'), %s, %s, %s)"
+        "ON CONFLICT (TxId, N) DO NOTHING")

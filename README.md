@@ -55,4 +55,4 @@ Usage
 
 Start the Zcash daemon and execute the following command:
 
-	$ python zcashmetrics.py
+	$ python zcashmetrics.py (BLOCKFROM) (BLOCKTO)

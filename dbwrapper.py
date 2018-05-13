@@ -1,28 +1,10 @@
 #!/usr/bin/env python2
 
+from tabledefs import TABLE_DEFS, ZCASH_DB_NAME
+
 import psycopg2
+
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
-ZCASH_DB_NAME = 'ZCashMetrics'
-
-class ColumnDef:
-    def __init__(self, columnName, columnType, isPrimaryKey = False):
-        self.columnName = columnName
-        self.columnType = columnType
-        self.isPrimaryKey = isPrimaryKey
-
-    def toQueryString(self):
-        return "{} {}".format(self.columnName, self.columnType)
-
-class TableDef:
-    def __init__(self, tableName, columnList):
-        self.tableName = tableName
-        self.columnList = columnList
-
-    def toQueryString(self):
-        columnString = ", ".join(column.toQueryString() for column in self.columnList)
-        primaryKeyString = ", ".join(column.columnName for column in self.columnList if column.isPrimaryKey)
-        return "{} ({}, PRIMARY KEY({}))".format(self.tableName, columnString, primaryKeyString)
 
 def openConnection(dbName = ZCASH_DB_NAME.lower()):
     try:
@@ -32,7 +14,7 @@ def openConnection(dbName = ZCASH_DB_NAME.lower()):
     except Exception as e:
         print "ERROR: Count not connect to database: {}".format(dbName)
         print e
-        exit(0)
+        exit(1)
 
 # Create database (ZCASH_DB_NAME) if it does not exist
 def ensureDatabaseExists():
@@ -47,7 +29,7 @@ def ensureDatabaseExists():
     except Exception as e:
         print "ERROR: Unable to find or create dabatase: {}".format(ZCASH_DB_NAME)
         print e
-        exit(0)
+        exit(1)
     finally:
         connection.close()
 
@@ -56,15 +38,24 @@ def ensureTableExists(connection, tableDef):
     try:
         cursor = connection.cursor()
         query = ("SELECT EXISTS("
-                    "SELECT 1 FROM information_schema.tables " 
-                    "WHERE lower(table_catalog)=lower(%s) AND " 
-                    "table_schema='public' AND " 
-                    "lower(table_name)=lower(%s))")
+                "SELECT 1 FROM information_schema.tables " 
+                "WHERE lower(table_catalog) = lower(%s) AND " 
+                "table_schema = 'public' AND " 
+                "lower(table_name) = lower(%s))")
         cursor.execute(query, [ZCASH_DB_NAME, tableDef.tableName])
         if not cursor.fetchone()[0]:
-            print "Creating table: {}".format(tableDef.toQueryString())
-            cursor.execute("CREATE TABLE {}".format(tableDef.toQueryString()))
+            print "Creating table: {}".format(tableDef.getCreateTableString())
+            cursor.execute("CREATE TABLE {}".format(tableDef.getCreateTableString()))
     except Exception as e:
         print "ERROR: Unable to find or create table {}".format(tableDef.tableName)
         print e
-        exit(0)
+        exit(1)
+
+def ensureTablesExist():
+    connection = openConnection()
+    try:
+        for tableDef in TABLE_DEFS:
+            ensureTableExists(connection, tableDef)
+    finally:
+        if connection:
+            connection.close()
