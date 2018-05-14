@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 from tabledefs import BLOCK_INSERT_QUERY, TX_INSERT_QUERY, VIN_INSERT_QUERY, VOUT_INSERT_QUERY, VJOINSPLIT_INSERT_QUERY
+from progresstracker import formatTime, ProgressTracker
 
 import dbwrapper
 
@@ -33,10 +34,14 @@ try:
     block_to = int(sys.argv[2]) if len(sys.argv) > 2 else api.getblockcount()
 
     if block_from >= block_to:
-        print "\nInvalid block range {}-{}...\n".format(block_from, block_to)
+        print "\nInvalid block range: {}-{}\n".format(block_from, block_to)
         exit(0)
     
     print "\nloading blocks {}-{}...\n".format(block_from, block_to)
+    
+    progress_tracker = ProgressTracker()
+    total_blocks = block_to - block_from + 1
+    blocks_loaded = 0
     
     # Add transactions and blocks to the database
     for blockHeight in xrange(block_from, block_to + 1): # +1 so inclusive
@@ -61,6 +66,11 @@ try:
                 cursor.execute(VJOINSPLIT_INSERT_QUERY, [txid, index, joinsplit["vpub_old"] * 100000000, joinsplit["vpub_new"] * 100000000])
         
         cursor.execute(BLOCK_INSERT_QUERY, [blockHeight, block["time"], len(txs)])
+        
+        blocks_loaded += 1
+        progress_tracker.setProgress(blocks_loaded, total_blocks)
+    print "\n{} blocks processed in {}\n".format(blocks_loaded, formatTime(progress_tracker.getTimeElapsed()))
+
 finally:
     if connection:
         connection.close()
