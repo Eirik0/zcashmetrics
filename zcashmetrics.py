@@ -44,8 +44,8 @@ try:
     blocks_loaded = 0
     
     # Add transactions and blocks to the database
-    for blockHeight in xrange(block_from, block_to + 1): # +1 so inclusive
-        block = api.getblock("{}".format(blockHeight), 2)
+    for block_height in xrange(block_from, block_to + 1): # +1 so inclusive
+        block = api.getblock("{}".format(block_height), 2)
         txs = block["tx"]
         
         for tx in txs:
@@ -55,20 +55,21 @@ try:
             joinsplits = tx["vjoinsplit"]
             is_coinbase = len(vins) == 1 and "coinbase" in vins[0]
             
-            cursor.execute(TX_INSERT_QUERY, [txid, blockHeight, is_coinbase, len(vins), len(vouts), len(joinsplits)])
+            cursor.execute(TX_INSERT_QUERY, [txid, block_height, is_coinbase, len(vins), len(vouts), len(joinsplits)])
             
             if not is_coinbase:
                 for vin in vins:
-                    cursor.execute(VIN_INSERT_QUERY, [txid, vin["vout"], vin["txid"]])
+                    cursor.execute(VIN_INSERT_QUERY, [txid, vin["txid"], vin["vout"]])
             for index, vout in enumerate(vouts):
                 cursor.execute(VOUT_INSERT_QUERY, [txid, index, vout["value"] * 100000000])
             for index, joinsplit in enumerate(joinsplits):
                 cursor.execute(VJOINSPLIT_INSERT_QUERY, [txid, index, joinsplit["vpub_old"] * 100000000, joinsplit["vpub_new"] * 100000000])
         
-        cursor.execute(BLOCK_INSERT_QUERY, [blockHeight, block["time"], len(txs)])
+        cursor.execute(BLOCK_INSERT_QUERY, [block_height, block["time"], len(txs)])
         
         blocks_loaded += 1
         progress_tracker.setProgress(blocks_loaded, total_blocks)
+        
     print "\n{} blocks processed in {}\n".format(blocks_loaded, formatTime(progress_tracker.getTimeElapsed()))
 
 finally:

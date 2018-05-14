@@ -32,7 +32,7 @@ TABLE_DEFS = (
         TableDef('Tx',
             [
                 ColumnDef('TxId', 'BYTEA', True),
-                ColumnDef('Block', 'INTEGER'),
+                ColumnDef('BlockHeight', 'INTEGER'),
                 ColumnDef('CoinBase', 'BOOLEAN'),
                 ColumnDef('NumVIn', 'INTEGER'),
                 ColumnDef('NumVOut', 'INTEGER'),
@@ -40,9 +40,9 @@ TABLE_DEFS = (
             ]),
         TableDef('VIn',
             [
-                ColumnDef('TxId', 'BYTEA', True),
-                ColumnDef('PrevN', 'INTEGER', True),
-                ColumnDef('PrevTxId', 'BYTEA')
+                ColumnDef('TxId', 'BYTEA'),
+                ColumnDef('PrevTxId', 'BYTEA', True),
+                ColumnDef('PrevN', 'INTEGER', True)
             ]),
         TableDef('VOut',
             [
@@ -62,12 +62,12 @@ TABLE_DEFS = (
 BLOCK_INSERT_QUERY = ("INSERT INTO Block (Height, Time, NumTx)"
         "VALUES (%s, %s, %s)"
         "ON CONFLICT (Height) DO NOTHING")
-TX_INSERT_QUERY = ("INSERT INTO Tx (TxId, Block, CoinBase, NumVIn, NumVOut, NumVJoinSplit) "
+TX_INSERT_QUERY = ("INSERT INTO Tx (TxId, BlockHeight, CoinBase, NumVIn, NumVOut, NumVJoinSplit) "
         "VALUES (decode(%s, 'hex'), %s, %s, %s, %s, %s) "
         "ON CONFLICT (TxId) DO NOTHING")
-VIN_INSERT_QUERY = ("INSERT INTO VIn (TxId, PrevN, PrevTxId)"
-        "VALUES (decode(%s, 'hex'), %s, %s) "
-        "ON CONFLICT (TxId, PrevN) DO NOTHING")
+VIN_INSERT_QUERY = ("INSERT INTO VIn (TxId, PrevTxId, PrevN)"
+        "VALUES (decode(%s, 'hex'), decode(%s, 'hex'), %s) "
+        "ON CONFLICT (PrevTxId, PrevN) DO NOTHING")
 VOUT_INSERT_QUERY = ("INSERT INTO VOut (TxId, N, Value)"
         "VALUES (decode(%s, 'hex'), %s, %s)"
         "ON CONFLICT (TxId, N) DO NOTHING")
