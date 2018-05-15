@@ -66,11 +66,26 @@ TX_INSERT_QUERY = ("INSERT INTO Tx (TxId, BlockHeight, CoinBase, NumVIn, NumVOut
         "VALUES (decode(%s, 'hex'), %s, %s, %s, %s, %s) "
         "ON CONFLICT (TxId) DO NOTHING")
 VIN_INSERT_QUERY = ("INSERT INTO VIn (TxId, PrevTxId, PrevN)"
-        "VALUES (decode(%s, 'hex'), decode(%s, 'hex'), %s) "
+        "VALUES {} "
         "ON CONFLICT (PrevTxId, PrevN) DO NOTHING")
 VOUT_INSERT_QUERY = ("INSERT INTO VOut (TxId, N, Value)"
-        "VALUES (decode(%s, 'hex'), %s, %s)"
+        "VALUES {}"
         "ON CONFLICT (TxId, N) DO NOTHING")
 VJOINSPLIT_INSERT_QUERY = ("INSERT INTO VJoinSplit (TxId, N, VPubOld, VPubNew)"
-        "VALUES (decode(%s, 'hex'), %s, %s, %s)"
+        "VALUES {}"
         "ON CONFLICT (TxId, N) DO NOTHING")
+
+def createMultiInsertQuery(cursor, basicQueryString, valuesString, valuesList):
+    return basicQueryString.format(",".join(cursor.mogrify(valuesString, values) for values in valuesList))
+
+def executeVInInsertQuery(cursor, valuesList):
+    if len(valuesList) > 0:
+        cursor.execute(createMultiInsertQuery(cursor, VIN_INSERT_QUERY, "(decode(%s, 'hex'), decode(%s, 'hex'), %s)", valuesList))
+
+def executeVOutInsertQuery(cursor, valuesList):
+    if len(valuesList) > 0:
+        cursor.execute(createMultiInsertQuery(cursor, VOUT_INSERT_QUERY, "(decode(%s, 'hex'), %s, %s)", valuesList))
+
+def executeVJoinSplitInsertQuery(cursor, valuesList):
+    if len(valuesList) > 0:
+        cursor.execute(createMultiInsertQuery(cursor, VJOINSPLIT_INSERT_QUERY, "(decode(%s, 'hex'), %s, %s, %s)", valuesList))
