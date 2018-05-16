@@ -35,7 +35,7 @@ try:
         block_from = int(sys.argv[1])
     block_to = min(int(sys.argv[2]), chain_height) if len(sys.argv) > 2 else chain_height
 
-    if block_from >= block_to:
+    if block_from > block_to:
         print "\nInvalid block range: {}-{}\n".format(block_from, block_to)
         exit(0)
     
