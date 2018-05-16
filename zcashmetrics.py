@@ -27,12 +27,13 @@ cursor = connection.cursor()
 
 try:
     block_from = 0
+    chain_height = api.getblockcount()
     if len(sys.argv) == 1 or sys.argv[1] == '-':
         cursor.execute("SELECT COALESCE(MAX(Height), -1) FROM Block")
         block_from = cursor.fetchone()[0] + 1
     else:
         block_from = int(sys.argv[1])
-    block_to = int(sys.argv[2]) if len(sys.argv) > 2 else api.getblockcount()
+    block_to = min(int(sys.argv[2]), chain_height) if len(sys.argv) > 2 else chain_height
 
     if block_from >= block_to:
         print "\nInvalid block range: {}-{}\n".format(block_from, block_to)
